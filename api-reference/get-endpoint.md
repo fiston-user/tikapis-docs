@@ -8,6 +8,12 @@ Retrieve information about your TikTok posts with this endpoint.
 GET https://tikapis.vercel.app/v1/tiktok/posts
 ```
 
+## Prerequisites
+
+Before using this endpoint, you must:
+1. Have a connected TikTok account in the dashboard
+2. Have created at least one TikTok post using the POST endpoint
+
 ## Authentication
 
 Requires API key authentication via the `X-API-Key` header.
@@ -24,9 +30,8 @@ Requires API key authentication via the `X-API-Key` header.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `status` | String | No | Filter by post status (`pending`, `scheduled`, `published`, `failed`) |
-| `startDate` | ISO Date String | No | Filter posts created on or after this date |
-| `endDate` | ISO Date String | No | Filter posts created on or before this date |
+| `status` | String | No | Filter by post status (`pending`, `processing`, `published`, `failed`) |
+| `postId` | String | No | Get a specific post by its ID |
 | `page` | Number | No | Page number for pagination (default: 1) |
 | `limit` | Number | No | Number of results per page (default: 20, max: 100) |
 
@@ -43,40 +48,30 @@ curl -X GET "https://tikapis.vercel.app/v1/tiktok/posts?status=published&limit=1
 
 ```json
 {
-  "success": true,
-  "data": [
+  "posts": [
     {
-      "id": "post_12345",
+      "id": "cl9z2x3m80000qp9abcdef123",
+      "userId": "user_abc123",
+      "tiktokId": "6956423584532654082",
       "status": "published",
-      "videoUrl": "https://example.com/videos/my-video.mp4",
-      "caption": "Check out my awesome video! #tikapis #automation #coding",
-      "visibility": "public",
-      "publishedAt": "2025-06-15T14:30:00Z",
+      "caption": "Check out my awesome video!",
       "createdAt": "2025-06-10T08:15:22Z",
-      "metrics": {
-        "views": 1240,
-        "likes": 89,
-        "comments": 12,
-        "shares": 5
-      }
+      "publishedAt": "2025-06-10T08:25:12Z"
     },
     {
-      "id": "post_12346",
-      "status": "scheduled",
-      "videoUrl": "https://example.com/videos/another-video.mp4",
-      "caption": "Coming soon! #tikapis",
-      "visibility": "public",
-      "scheduledAt": "2025-06-18T10:00:00Z",
+      "id": "cl9z2x3m90001qp9abcdef456",
+      "userId": "user_abc123",
+      "tiktokId": "6956423584532654083",
+      "status": "processing",
+      "caption": "Coming soon!",
       "createdAt": "2025-06-10T09:22:45Z"
     }
   ],
-  "meta": {
-    "pagination": {
-      "total": 45,
-      "pages": 5,
-      "current": 1,
-      "limit": 10
-    }
+  "pagination": {
+    "total": 12,
+    "pages": 2,
+    "current": 1,
+    "limit": 10
   }
 }
 ```
@@ -85,11 +80,15 @@ curl -X GET "https://tikapis.vercel.app/v1/tiktok/posts?status=published&limit=1
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "unauthorized",
-    "message": "Invalid API key provided."
-  }
+  "error": "Invalid API key provided."
+}
+```
+
+### Error Response (404 Not Found)
+
+```json
+{
+  "error": "Post not found."
 }
 ```
 
@@ -108,14 +107,14 @@ curl -X GET "https://tikapis.vercel.app/v1/tiktok/posts?status=published&limit=1
 
 | Status | Description |
 | ------ | ----------- |
-| `pending` | Post is being processed and prepared for publishing |
-| `scheduled` | Post is scheduled to be published at a future time |
+| `pending` | Initial state when the post is created in our database |
+| `processing` | Post has been submitted to TikTok and is being processed |
 | `published` | Post has been successfully published to TikTok |
-| `failed` | Post failed to publish due to an error |
+| `failed` | Post failed during processing or publishing |
 
-## Metrics Availability
+## TikTok ID
 
-Metrics data (views, likes, comments, shares) is only available for posts with `published` status and may have a delay of up to 24 hours after publishing.
+The `tiktokId` field represents the unique identifier assigned by TikTok during the post creation process. This ID can be used to reference the post on the TikTok platform.
 
 ## Notes
 

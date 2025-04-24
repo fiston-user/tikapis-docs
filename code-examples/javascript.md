@@ -130,39 +130,38 @@ const config = require('./config');
 
 /**
  * Create a new TikTok post
- * @param {Object} postData - Post data
- * @param {string} postData.videoUrl - URL to the video file
- * @param {string} postData.caption - Post caption
- * @param {Array<string>} postData.hashtags - Array of hashtags
- * @param {string} postData.schedule - ISO date string for scheduled posting
- * @param {string} postData.visibility - Post visibility setting
+ * @param {FormData} formData - Form data containing video file and caption
  * @returns {Promise<Object>} - API response
  */
-async function createPost(postData) {
+async function createPost(formData) {
   try {
-    // Validate required fields
-    if (!postData.videoUrl) throw new Error('videoUrl is required');
-    if (!postData.caption) throw new Error('caption is required');
+    // Validate required fields - formData should contain videoFile
+    if (!formData.has('videoFile')) {
+      throw new Error('videoFile is required in formData');
+    }
     
     const url = `${config.baseUrl}/tiktok/posts`;
     
-    // Make API request
+    // Make API request with FormData
+    // Note: Don't set Content-Type header when sending FormData
+    // Fetch will automatically set the correct multipart/form-data boundary
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'X-API-Key': config.apiKey
       },
-      body: JSON.stringify(postData)
+      body: formData
     });
     
     // Handle API response
     if (!response.ok) {
       // Get error details from response
       const errorData = await response.json();
-      throw new Error(
-        `API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`
-      );
+      const errorMessage = typeof errorData.error === 'string' 
+        ? errorData.error 
+        : errorData.error?.message || 'Unknown error';
+        
+      throw new Error(`API error: ${response.status} - ${errorMessage}`);
     }
     
     return await response.json();
@@ -175,18 +174,23 @@ async function createPost(postData) {
 // Example usage
 async function main() {
   try {
+    // Create FormData object to upload the video file
+    const form = new FormData();
+    
+    // Assume we have a File object from input or other source
+    // For example: const videoFile = document.getElementById('videoInput').files[0];
+    const videoFile = new File([/* video data */], 'my-video.mp4', { type: 'video/mp4' });
+    
+    form.append('videoFile', videoFile);
+    form.append('caption', 'Check out this awesome video created with TikAPIs!');
+    
     // Create a new post
-    const result = await createPost({
-      videoUrl: 'https://example.com/videos/my-tiktok-video.mp4',
-      caption: 'Check out this awesome video created with TikAPIs!',
-      hashtags: ['tikapis', 'automation', 'developer'],
-      visibility: 'public'
-    });
+    const result = await createPost(form);
     
     console.log('Post created successfully:');
-    console.log(`ID: ${result.data.id}`);
-    console.log(`Status: ${result.data.status}`);
-    console.log(`Created at: ${result.data.createdAt}`);
+    console.log(`PostID: ${result.postId}`);
+    console.log(`TikTok PublishID: ${result.publishId}`);
+    console.log(`Message: ${result.message}`);
   } catch (error) {
     console.error('Error in main function:', error.message);
   }

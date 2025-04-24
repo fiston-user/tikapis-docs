@@ -153,51 +153,49 @@ import json
 from config import API_KEY, BASE_URL
 
 
-def create_post(video_url, caption, hashtags=None, schedule=None, visibility="public"):
+def create_post(video_file_path, caption=None):
     """
     Create a new TikTok post
     
     Args:
-        video_url (str): URL to the video file
-        caption (str): Post caption
-        hashtags (list, optional): List of hashtags without # symbol
-        schedule (str, optional): ISO date string for scheduled posting
-        visibility (str, optional): Post visibility setting
+        video_file_path (str): Path to the local video file to upload
+        caption (str, optional): Caption text for the TikTok post
         
     Returns:
         dict: API response data
     """
     try:
         # Validate required fields
-        if not video_url:
-            raise ValueError("video_url is required")
+        if not video_file_path:
+            raise ValueError("video_file_path is required")
         if not caption:
             raise ValueError("caption is required")
         
-        # Prepare request data
-        post_data = {
-            "videoUrl": video_url,
-            "caption": caption,
-            "visibility": visibility
+        # Validate video file exists
+        if not os.path.exists(video_file_path):
+            raise ValueError(f"Video file not found: {video_file_path}")
+        
+        # Prepare form data with the video file
+        files = {
+            'videoFile': (os.path.basename(video_file_path), open(video_file_path, 'rb'), 'video/mp4')
         }
         
-        # Add optional fields if provided
-        if hashtags:
-            post_data["hashtags"] = hashtags
-        if schedule:
-            post_data["schedule"] = schedule
+        # Add caption to form data if provided
+        data = {}
+        if caption:
+            data['caption'] = caption
         
         # Set up headers
         headers = {
-            "Content-Type": "application/json",
             "X-API-Key": API_KEY
         }
         
-        # Make API request
+        # Make API request with multipart form data
         response = requests.post(
             f"{BASE_URL}/tiktok/posts",
             headers=headers,
-            data=json.dumps(post_data)
+            files=files,
+            data=data
         )
         
         # Raise exception for HTTP errors
@@ -230,18 +228,15 @@ def create_post(video_url, caption, hashtags=None, schedule=None, visibility="pu
 def main():
     # Example: Create a new post
     result = create_post(
-        video_url="https://example.com/videos/my-tiktok-video.mp4",
-        caption="Check out this awesome video created with TikAPIs!",
-        hashtags=["tikapis", "automation", "python"],
-        visibility="public"
+        video_file_path="/path/to/your/video.mp4",
+        caption="Check out this awesome video created with TikAPIs!"
     )
     
     if result and result.get("success"):
-        post_data = result.get("data", {})
         print("Post created successfully:")
-        print(f"ID: {post_data.get('id')}")
-        print(f"Status: {post_data.get('status')}")
-        print(f"Created at: {post_data.get('createdAt')}")
+        print(f"Message: {result.get('message')}")
+        print(f"Post ID: {result.get('postId')}")
+        print(f"TikTok Publish ID: {result.get('publishId')}")
     else:
         print("Failed to create post")
 
